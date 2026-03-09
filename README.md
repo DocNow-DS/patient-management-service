@@ -1,3 +1,4 @@
+
 # AI-Enabled Smart Healthcare Platform (Microservices)
 
 Cloud-native telemedicine platform like Channeling.lk using Spring Boot microservices, MongoDB, Docker, and Kubernetes. Supports patient/doctor/admin roles, appointments, video calls, payments, and AI symptom checker.
@@ -33,3 +34,65 @@ Communication: REST APIs + API Gateway (Spring Cloud Gateway).
 ## Quick Start (Local)
 
 1. **Prerequisites**:
+   ```
+   Docker, Docker Compose, Minikube/Kubectl, Node.js, Maven
+   MongoDB: docker run -p 27017:27017 mongo:latest
+   ```
+
+2. **Clone & Build**:
+   ```
+   git clone <your-org>/<repo>
+   cd patient-management-service
+   mvn clean package -DskipTests
+   ```
+
+3. **Docker Compose (Dev)**:
+   ```
+   docker-compose up -d  # Starts MongoDB + services
+   ```
+
+4. **Kubernetes (Minikube)**:
+   ```
+   minikube start
+   eval $(minikube docker-env)
+   kubectl apply -f k8s/
+   minikube dashboard  # View services
+   ```
+
+5. **Access**:
+   - API: http://localhost:8081/api/auth/register
+   - Frontend: http://localhost:3000 (serve React build)
+
+## Deployment Steps (Production - AWS Free Tier/EC2)
+1. Push Docker images to ECR: `aws ecr create-repo patient-service`
+2. Update `k8s/deployment.yaml` with ECR image.
+3. Launch EC2 t2.micro (Free Tier), install Docker/K8s (k3s).
+4. `kubectl apply -f k8s/`
+5. Expose via LoadBalancer or Ingress.
+
+**AWS Free Tier Note**: Use EC2/ECS for dev; EKS costs ~$73/month.
+
+## API Documentation
+See `/openapi.html` or Postman collection in `docs/`.
+
+**Patient Management Endpoints** (example):
+- POST `/api/auth/register` - {role: "PATIENT", ...}
+- GET `/api/patient/profile` - Bearer JWT
+
+## Testing
+```
+mvn test  # Unit/Integration
+docker exec -it <container> mvn test
+```
+
+## Group Members
+See members.txt
+
+## Contributions
+- Member1 (Reg#): Patient Service
+- etc.
+
+**Demo Video**: https://youtube.com/...
+
+For issues: Create GitHub issue.
+
