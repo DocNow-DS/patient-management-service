@@ -16,6 +16,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -32,11 +34,25 @@ public class AuthService {
             throw new RuntimeException("Username already exists");
         }
 
+        // map role: default to PATIENT if not provided, support case-insensitive match
+        Role mappedRole;
+        String roleStr = request.getRole();
+        if (roleStr == null || roleStr.isBlank()) {
+            mappedRole = Role.PATIENT;
+        } else {
+            try {
+                mappedRole = Role.valueOf(roleStr.trim().toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Invalid role. Allowed values: PATIENT, DOCTOR, ADMIN");
+            }
+        }
+
         User user = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
-                .roles(Set.of(Role.valueOf(request.getRole().toUpperCase())))
+                .roles(Set.of(mappedRole))
                 .enabled(true)
                 .build();
 
