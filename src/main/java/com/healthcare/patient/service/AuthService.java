@@ -14,6 +14,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 import org.springframework.http.HttpStatus;
@@ -29,7 +30,10 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserDetailsService userDetailsService;
 
+    @Transactional
     public String register(RegisterRequest request) {
+        System.out.println("Registering user: " + request.getUsername());
+        
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new RuntimeException("Username already exists");
         }
@@ -56,7 +60,10 @@ public class AuthService {
                 .enabled(true)
                 .build();
 
-        userRepository.save(user);
+        System.out.println("Saving user: " + user);
+        User savedUser = userRepository.save(user);
+        System.out.println("Saved user with ID: " + savedUser.getId());
+        
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
         return jwtUtil.generateToken(userDetails);
     }
