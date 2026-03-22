@@ -67,7 +67,10 @@ public class AuthService {
         
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
         String token = jwtUtil.generateToken(userDetails);
-        return new AuthResult(token, savedUser);
+        AuthResult result = new AuthResult();
+        result.setToken(token);
+        result.setUser(savedUser);
+        return result;
     }
 
     public AuthResult login(LoginRequest request) {
@@ -82,7 +85,10 @@ public class AuthService {
         String token = jwtUtil.generateToken(userDetails);
         User user = userRepository.findByUsername(loginUsername)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password"));
-        return new AuthResult(token, user);
+        AuthResult result = new AuthResult();
+        result.setToken(token);
+        result.setUser(user);
+        return result;
     }
 
     @Transactional
