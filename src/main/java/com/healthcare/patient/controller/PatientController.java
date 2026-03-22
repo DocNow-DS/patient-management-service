@@ -1,7 +1,7 @@
 package com.healthcare.patient.controller;
 
-import com.healthcare.patient.model.MedicalReport;
 import com.healthcare.patient.model.Patient;
+import com.healthcare.patient.model.MedicalReport;
 import com.healthcare.patient.model.Prescription;
 import com.healthcare.patient.model.User;
 import com.healthcare.patient.repository.PatientRepository;
@@ -21,7 +21,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/patient")
 @RequiredArgsConstructor
 public class PatientController {
 
@@ -32,21 +31,42 @@ public class PatientController {
     private final UserRepository userRepository;
     private final PatientRepository patientRepository;
 
-    @GetMapping("/all")
+    // ---- /api/patients/** ---- (public read, used by doctor-service)
+
+    /**
+     * Get a patient by their patient-profile ID. Used by doctor-service's
+     * isPatientValid.
+     */
+    @GetMapping("/api/patients/{id}")
+    public ResponseEntity<Patient> getPatientById(@PathVariable String id) {
+        return patientRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /** Get all patients (for admin/doctor consumption). */
+    @GetMapping("/api/patients")
+    public ResponseEntity<List<Patient>> getPatients() {
+        return ResponseEntity.ok(patientRepository.findAll());
+    }
+
+    // ---- /api/patient/** ---- (authenticated, patient self-service)
+
+    @GetMapping("/api/patient/all")
     public ResponseEntity<List<Patient>> getAllPatients() {
         List<Patient> patients = patientRepository.findAll();
         System.out.println("Total patients found: " + patients.size());
         return ResponseEntity.ok(patients);
     }
 
-    @GetMapping("/profile")
+    @GetMapping("/api/patient/profile")
     public ResponseEntity<Patient> getProfile(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(patientService.getPatientProfile(user.getId()));
     }
 
-    @PutMapping("/profile")
+    @PutMapping("/api/patient/profile")
     public ResponseEntity<Patient> updateProfile(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody Patient patient) {
@@ -56,7 +76,7 @@ public class PatientController {
         return ResponseEntity.ok(patientService.createOrUpdateProfile(patient));
     }
 
-    @PostMapping("/reports")
+    @PostMapping("/api/patient/reports")
     public ResponseEntity<MedicalReport> uploadReport(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam("file") MultipartFile file,
@@ -78,7 +98,7 @@ public class PatientController {
         return ResponseEntity.ok(reportRepository.save(report));
     }
 
-    @GetMapping("/reports")
+    @GetMapping("/api/patient/reports")
     public ResponseEntity<List<MedicalReport>> getReports(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -86,7 +106,7 @@ public class PatientController {
         return ResponseEntity.ok(reportRepository.findByPatientId(patient.getId()));
     }
 
-    @GetMapping("/prescriptions")
+    @GetMapping("/api/patient/prescriptions")
     public ResponseEntity<List<Prescription>> getPrescriptions(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));

@@ -15,7 +15,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Patient {
     @Id
     private String id;
-    private String userId;
+    private String userId; // links to User._id
     private String name;
     private Integer age;
     private String gender;
