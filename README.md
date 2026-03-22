@@ -36,10 +36,15 @@ Communication: REST APIs + API Gateway (Spring Cloud Gateway).
 1. **Prerequisites**:
    ```
    Docker, Docker Compose, Minikube/Kubectl, Node.js, Maven
-   MongoDB: docker run -p 27017:27017 mongo:latest
+   MongoDB: `docker compose up -d` (see `docker-compose.yml`)
    ```
 
-2. **Clone & Build**:
+2. **Start MongoDB (Local)**:
+   ```
+   docker compose up -d
+   ```
+
+3. **Clone & Build**:
    ```
    git clone <your-org>/<repo>
    cd patient-management-service
