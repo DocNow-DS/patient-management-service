@@ -14,7 +14,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -29,9 +31,12 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserDetailsService userDetailsService;
 
-    public String register(RegisterRequest request) {
+    @Transactional
+    public AuthResult register(RegisterRequest request) {
+        System.out.println("Registering user: " + request.getUsername());
+        
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new RuntimeException("Username already exists");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
         }
 
         // map role: default to PATIENT if not provided, support case-insensitive match
@@ -56,18 +61,69 @@ public class AuthService {
                 .enabled(true)
                 .build();
 
-        userRepository.save(user);
+        System.out.println("Saving user: " + user);
+        User savedUser = userRepository.save(user);
+        System.out.println("Saved user with ID: " + savedUser.getId());
+        
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
-        return jwtUtil.generateToken(userDetails);
+        String token = jwtUtil.generateToken(userDetails);
+        return new AuthResult(token, savedUser);
     }
 
-    public String login(LoginRequest request) {
+    public AuthResult login(LoginRequest request) {
+        String loginUsername = resolveUsernameForLogin(request);
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
+                        loginUsername,
                         request.getPassword()));
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
-        return jwtUtil.generateToken(userDetails);
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(loginUsername);
+        String token = jwtUtil.generateToken(userDetails);
+        User user = userRepository.findByUsername(loginUsername)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password"));
+        return new AuthResult(token, user);
+    }
+
+    @Transactional
+    public User updateCredentials(String currentUsername, UpdateCredentialsRequest request) {
+        User user = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            String newEmail = request.getEmail().trim();
+            Optional<User> existing = userRepository.findByEmail(newEmail);
+            if (existing.isPresent() && !existing.get().getId().equals(user.getId())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
+            }
+            user.setEmail(newEmail);
+        }
+
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+
+        return userRepository.save(user);
+    }
+
+    private String resolveUsernameForLogin(LoginRequest request) {
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            User user = userRepository.findByEmail(request.getEmail().trim())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username/email or password"));
+            return user.getUsername();
+        }
+        if (request.getUsername() == null || request.getUsername().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "username or email is required");
+        }
+        return request.getUsername().trim();
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class AuthResult {
+        private String token;
+        private User user;
     }
 
     @Data
@@ -85,6 +141,15 @@ public class AuthService {
     @NoArgsConstructor
     public static class LoginRequest {
         private String username;
+        private String email;
+        private String password;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class UpdateCredentialsRequest {
+        private String email;
         private String password;
     }
 }

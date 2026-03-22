@@ -10,6 +10,20 @@
 			"name": "Authentication",
 			"item": [
 				{
+					"name": "Get All Users (Debug)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "users"]
+						},
+						"description": "Debug endpoint to check if users are being saved to database"
+					},
+					"response": []
+				},
+				{
 					"name": "Register User",
 					"request": {
 						"method": "POST",
@@ -53,7 +67,24 @@
 						},
 						"description": "Authenticate user and receive JWT token"
 					},
-					"response": []
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.token) {",
+									"        pm.collectionVariables.set('jwtToken', response.token);",
+									"        console.log('JWT token saved:', response.token);",
+									"    }",
+									"}"
+								]
+							}
+						}
+					]
 				}
 			],
 			"description": "Authentication endpoints for user registration and login"
@@ -61,6 +92,20 @@
 		{
 			"name": "Patient Operations",
 			"item": [
+				{
+					"name": "Get All Patients (Debug)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/patient/all",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "patient", "all"]
+						},
+						"description": "Debug endpoint to check all patient profiles in database"
+					},
+					"response": []
+				},
 				{
 					"name": "Get Patient Profile",
 					"request": {
@@ -296,26 +341,6 @@
 			"value": "",
 			"type": "string",
 			"description": "User ID for admin operations"
-		}
-	],
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
-		},
-		{
-			"listen": "test",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
 		}
 	]
 }
