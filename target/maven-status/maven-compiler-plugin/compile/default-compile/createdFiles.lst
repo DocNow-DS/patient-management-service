@@ -11,6 +11,7 @@ com\healthcare\patient\service\PatientService.class
 com\healthcare\patient\service\AuthService.class
 com\healthcare\patient\repository\ReportRepository.class
 com\healthcare\patient\security\CustomUserDetailsService.class
+com\healthcare\patient\security\JwtAuthenticationFilter.class
 com\healthcare\patient\controller\PatientController.class
 com\healthcare\patient\service\FileStorageService.class
 com\healthcare\patient\model\Patient.class
@@ -21,7 +22,10 @@ com\healthcare\patient\security\JwtUtil.class
 com\healthcare\patient\controller\AdminController.class
 com\healthcare\patient\service\AuthService$RegisterRequest.class
 com\healthcare\patient\model\User$Builder.class
+com\healthcare\patient\service\AuthService$UpdateCredentialsRequest.class
+com\healthcare\patient\controller\GlobalExceptionHandler.class
 com\healthcare\patient\repository\PatientRepository.class
 com\healthcare\patient\model\MedicalReport.class
 com\healthcare\patient\service\AuthService$LoginRequest.class
 com\healthcare\patient\security\SecurityConfig.class
+com\healthcare\patient\service\AuthService$AuthResult.class

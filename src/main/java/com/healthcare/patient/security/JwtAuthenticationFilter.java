@@ -13,8 +13,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -35,19 +33,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             String jwt = authorizationHeader.substring(7);
-            
+
             try {
-                String username = extractUsername(jwt);
-                
+                String username = jwtUtil.extractUsername(jwt);
+
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
-                    
-                    UsernamePasswordAuthenticationToken authToken = 
-                            new UsernamePasswordAuthenticationToken(
-                                    userDetails, null, userDetails.getAuthorities());
-                    
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                    if (jwtUtil.isTokenValid(jwt, userDetails)) {
+                        UsernamePasswordAuthenticationToken authToken =
+                                new UsernamePasswordAuthenticationToken(
+                                        userDetails, null, userDetails.getAuthorities());
+
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
                 }
             } catch (Exception e) {
                 // Invalid token, continue without authentication
@@ -58,13 +58,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
     
-    private String extractUsername(String token) {
-        try {
-            String payload = new String(Base64.getUrlDecoder().decode(token), StandardCharsets.UTF_8);
-            String[] parts = payload.split(":");
-            return parts[0]; // Return username part
-        } catch (Exception e) {
-            return null;
-        }
-    }
+
 }
