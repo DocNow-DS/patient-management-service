@@ -4,6 +4,7 @@ import com.healthcare.patient.model.Patient;
 import com.healthcare.patient.repository.PatientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -13,11 +14,27 @@ public class PatientService {
 
     private final PatientRepository patientRepository;
 
+    @Transactional
     public Patient getPatientProfile(String userId) {
         return patientRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("Patient profile not found"));
+                .orElseGet(() -> createDefaultPatientProfile(userId));
     }
 
+    private Patient createDefaultPatientProfile(String userId) {
+        System.out.println("Creating default patient profile for user: " + userId);
+        Patient patient = Patient.builder()
+                .userId(userId)
+                .name("Unknown")
+                .age(null)
+                .gender("Unknown")
+                .phone("")
+                .address("")
+                .medicalHistory("")
+                .build();
+        return patientRepository.save(patient);
+    }
+
+    @Transactional
     public Patient createOrUpdateProfile(Patient patient) {
         Optional<Patient> existingPatient = patientRepository.findByUserId(patient.getUserId());
         if (existingPatient.isPresent()) {

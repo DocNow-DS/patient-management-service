@@ -4,6 +4,7 @@ import com.healthcare.patient.model.MedicalReport;
 import com.healthcare.patient.model.Patient;
 import com.healthcare.patient.model.Prescription;
 import com.healthcare.patient.model.User;
+import com.healthcare.patient.repository.PatientRepository;
 import com.healthcare.patient.repository.PrescriptionRepository;
 import com.healthcare.patient.repository.ReportRepository;
 import com.healthcare.patient.repository.UserRepository;
@@ -29,6 +30,14 @@ public class PatientController {
     private final ReportRepository reportRepository;
     private final PrescriptionRepository prescriptionRepository;
     private final UserRepository userRepository;
+    private final PatientRepository patientRepository;
+
+    @GetMapping("/all")
+    public ResponseEntity<List<Patient>> getAllPatients() {
+        List<Patient> patients = patientRepository.findAll();
+        System.out.println("Total patients found: " + patients.size());
+        return ResponseEntity.ok(patients);
+    }
 
     @GetMapping("/profile")
     public ResponseEntity<Patient> getProfile(@AuthenticationPrincipal UserDetails userDetails) {

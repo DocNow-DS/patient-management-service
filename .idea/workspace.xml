@@ -4,7 +4,26 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2e7f1a09-98b8-4bd0-80ea-996b55d674ab" name="Changes" comment="" />
+    <list default="true" id="2e7f1a09-98b8-4bd0-80ea-996b55d674ab" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/postman-collection.json" beforeDir="false" afterPath="$PROJECT_DIR$/postman-collection.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/healthcare/patient/controller/AuthController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/healthcare/patient/controller/AuthController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/healthcare/patient/controller/PatientController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/healthcare/patient/controller/PatientController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/healthcare/patient/repository/PatientRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/healthcare/patient/repository/PatientRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/healthcare/patient/repository/UserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/healthcare/patient/repository/UserRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/healthcare/patient/security/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/healthcare/patient/security/SecurityConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/healthcare/patient/service/AuthService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/healthcare/patient/service/AuthService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/healthcare/patient/service/PatientService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/healthcare/patient/service/PatientService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/healthcare/patient/controller/AuthController$AuthResponse.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/healthcare/patient/controller/AuthController$AuthResponse.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/healthcare/patient/controller/AuthController.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/healthcare/patient/controller/AuthController.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/healthcare/patient/repository/PatientRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/healthcare/patient/repository/PatientRepository.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/healthcare/patient/repository/UserRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/healthcare/patient/repository/UserRepository.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/healthcare/patient/security/SecurityConfig.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/healthcare/patient/security/SecurityConfig.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/healthcare/patient/service/AuthService$LoginRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/healthcare/patient/service/AuthService$LoginRequest.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/healthcare/patient/service/AuthService$RegisterRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/healthcare/patient/service/AuthService$RegisterRequest.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/healthcare/patient/service/AuthService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/healthcare/patient/service/AuthService.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/healthcare/patient/service/PatientService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/healthcare/patient/service/PatientService.class" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -13,9 +32,9 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 1
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1
+}</component>
   <component name="ProjectId" id="3BHfUxWKvOuTigvJCPFObm86I9W" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -25,7 +44,7 @@
   "keyToString": {
     "Application.PatientManagementApplication.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "clinic-branch-service",
     "kotlin-language-version-configured": "true"
   }
 }]]></component>
