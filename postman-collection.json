@@ -1,0 +1,321 @@
+{
+	"info": {
+		"_postman_id": "patient-management-service",
+		"name": "Patient Management Service API",
+		"description": "Complete API collection for Patient Management Service with authentication, patient operations, and admin functions",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"john_doe\",\n    \"password\": \"password123\",\n    \"email\": \"john.doe@example.com\",\n    \"roles\": [\"PATIENT\"]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "register"]
+						},
+						"description": "Register a new user in the system"
+					},
+					"response": []
+				},
+				{
+					"name": "Login User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"john_doe\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Authenticate user and receive JWT token"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for user registration and login"
+		},
+		{
+			"name": "Patient Operations",
+			"item": [
+				{
+					"name": "Get Patient Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/patient/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "patient", "profile"]
+						},
+						"description": "Retrieve the authenticated patient's profile information"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Patient Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"age\": 30,\n    \"gender\": \"Male\",\n    \"phone\": \"+1234567890\",\n    \"address\": \"123 Main St, City, State\",\n    \"medicalHistory\": \"No known allergies\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/patient/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "patient", "profile"]
+						},
+						"description": "Update the authenticated patient's profile information"
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Medical Report",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/path/to/medical-report.pdf"
+								},
+								{
+									"key": "description",
+									"value": "Annual health checkup report",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/patient/reports",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "patient", "reports"]
+						},
+						"description": "Upload a medical report file for the authenticated patient"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Medical Reports",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/patient/reports",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "patient", "reports"]
+						},
+						"description": "Retrieve all medical reports for the authenticated patient"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Prescriptions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/patient/prescriptions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "patient", "prescriptions"]
+						},
+						"description": "Retrieve all prescriptions for the authenticated patient"
+					},
+					"response": []
+				}
+			],
+			"description": "Patient-specific operations requiring authentication"
+		},
+		{
+			"name": "Admin Operations",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminJwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admin", "users"]
+						},
+						"description": "Retrieve all users in the system (Admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminJwtToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"updated.email@example.com\",\n    \"roles\": [\"PATIENT\", \"DOCTOR\"],\n    \"enabled\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admin", "users", "{{userId}}"]
+						},
+						"description": "Update a specific user's information (Admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminJwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admin", "users", "{{userId}}"]
+						},
+						"description": "Delete a specific user from the system (Admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transactions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminJwtToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/transactions",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admin", "transactions"]
+						},
+						"description": "Retrieve financial transactions (Admin only - stub endpoint)"
+					},
+					"response": []
+				}
+			],
+			"description": "Administrative operations requiring admin privileges"
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "jwtToken",
+			"value": "",
+			"type": "string",
+			"description": "JWT token for authenticated patient/user"
+		},
+		{
+			"key": "adminJwtToken",
+			"value": "",
+			"type": "string",
+			"description": "JWT token for admin user"
+		},
+		{
+			"key": "userId",
+			"value": "",
+			"type": "string",
+			"description": "User ID for admin operations"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
