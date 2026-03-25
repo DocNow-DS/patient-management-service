@@ -43,6 +43,7 @@ public class SecurityConfig {
                     .requestMatchers("/error").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/register/").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/login/").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/auth/validate").authenticated()
                         .anyRequest().authenticated())
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
