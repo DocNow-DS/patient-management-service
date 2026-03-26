@@ -93,4 +93,18 @@ public class PatientController {
         Patient patient = patientService.getPatientProfile(user.getId());
         return ResponseEntity.ok(prescriptionRepository.findByPatientId(patient.getId()));
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Patient> getPatientById(@PathVariable String id) {
+        // First try to find by patient ID
+        Patient patient = patientRepository.findById(id).orElse(null);
+        if (patient != null) {
+            return ResponseEntity.ok(patient);
+        }
+        
+        // If not found, try to find by user ID
+        patient = patientRepository.findByUserId(id)
+                .orElseThrow(() -> new RuntimeException("Patient not found with user ID: " + id));
+        return ResponseEntity.ok(patient);
+    }
 }
