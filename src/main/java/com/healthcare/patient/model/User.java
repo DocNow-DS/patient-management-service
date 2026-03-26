@@ -30,4 +30,9 @@ public class User {
     private String phone;
     private String address;
     private String medicalHistory;
+    private String specialty;
+    private String licenseNumber;
+    private Integer yearsOfExperience;
+    private String qualifications;
+    private String department;
 }

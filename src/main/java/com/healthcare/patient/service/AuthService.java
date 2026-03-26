@@ -37,7 +37,7 @@ public class AuthService {
     private final UserEventPublisher userEventPublisher;
 
     @Transactional
-    public AuthResult register(RegisterRequest request) {
+    public AuthResult register(RegisterRequest request, User requestingAdmin) {
         System.out.println("Registering user: " + request.getUsername());
         
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
@@ -58,19 +58,60 @@ public class AuthService {
             }
         }
 
-        User user = User.builder()
+        // Only admins can register doctors
+        if (mappedRole == Role.DOCTOR) {
+            if (requestingAdmin == null || !requestingAdmin.getRoles().contains(Role.ADMIN)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can register doctors");
+            }
+        }
+
+        User.UserBuilder userBuilder = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .roles(Set.of(mappedRole))
-                .enabled(true)
-                .name("Unknown")
-                .age(null)
-                .gender("Unknown")
-                .phone("")
-                .address("")
-                .medicalHistory("")
-                .build();
+                .enabled(true);
+
+        // Set fields based on role
+        if (mappedRole == Role.PATIENT) {
+            userBuilder.name("Unknown")
+                    .age(null)
+                    .gender("Unknown")
+                    .phone("")
+                    .address("")
+                    .medicalHistory("")
+                    .specialty(null)
+                    .licenseNumber(null)
+                    .yearsOfExperience(null)
+                    .qualifications(null)
+                    .department(null);
+        } else if (mappedRole == Role.DOCTOR) {
+            userBuilder.name(request.getSpecialty() + " Doctor")
+                    .age(null)
+                    .gender("Unknown")
+                    .phone("")
+                    .address("")
+                    .medicalHistory("")
+                    .specialty(request.getSpecialty())
+                    .licenseNumber(request.getLicenseNumber())
+                    .yearsOfExperience(request.getYearsOfExperience())
+                    .qualifications(request.getQualifications())
+                    .department(request.getDepartment());
+        } else {
+            userBuilder.name("Admin")
+                    .age(null)
+                    .gender("Unknown")
+                    .phone("")
+                    .address("")
+                    .medicalHistory("")
+                    .specialty(null)
+                    .licenseNumber(null)
+                    .yearsOfExperience(null)
+                    .qualifications(null)
+                    .department(null);
+        }
+
+        User user = userBuilder.build();
 
         System.out.println("Saving user: " + user);
         User savedUser = userRepository.save(user);
@@ -160,6 +201,11 @@ public class AuthService {
         private String password;
         private String email;
         private String role;
+        private String specialty;
+        private String licenseNumber;
+        private Integer yearsOfExperience;
+        private String qualifications;
+        private String department;
     }
 
     @Data

@@ -39,8 +39,14 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody AuthService.RegisterRequest request) {
-        AuthService.AuthResult result = authService.register(request);
+    public ResponseEntity<AuthResponse> register(@RequestBody AuthService.RegisterRequest request,
+                                                  @AuthenticationPrincipal UserDetails userDetails) {
+        User requestingAdmin = null;
+        if (userDetails != null) {
+            requestingAdmin = userRepository.findByUsername(userDetails.getUsername())
+                    .orElse(null);
+        }
+        AuthService.AuthResult result = authService.register(request, requestingAdmin);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new AuthResponse("Bearer", result.getToken(), result.getUser()));
     }
