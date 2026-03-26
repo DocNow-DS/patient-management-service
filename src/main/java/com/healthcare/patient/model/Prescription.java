@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 public class Prescription {
     @Id
     private String id;
-    private String patientId;
+    private String userId;
     private String doctorId;
     private String medication;
     private String dosage;

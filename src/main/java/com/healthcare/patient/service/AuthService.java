@@ -64,6 +64,12 @@ public class AuthService {
                 .email(request.getEmail())
                 .roles(Set.of(mappedRole))
                 .enabled(true)
+                .name("Unknown")
+                .age(null)
+                .gender("Unknown")
+                .phone("")
+                .address("")
+                .medicalHistory("")
                 .build();
 
         System.out.println("Saving user: " + user);
