@@ -3,6 +3,7 @@ package com.healthcare.patient.service;
 import com.healthcare.patient.model.Role;
 import com.healthcare.patient.model.User;
 import com.healthcare.patient.repository.UserRepository;
+import com.healthcare.patient.event.UserEventPublisher;
 import com.healthcare.patient.security.JwtUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,12 +11,15 @@ import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.http.HttpStatus;
@@ -30,6 +34,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final UserDetailsService userDetailsService;
+    private final UserEventPublisher userEventPublisher;
 
     @Transactional
     public AuthResult register(RegisterRequest request) {
@@ -64,9 +69,11 @@ public class AuthService {
         System.out.println("Saving user: " + user);
         User savedUser = userRepository.save(user);
         System.out.println("Saved user with ID: " + savedUser.getId());
+
+        userEventPublisher.publishUserCreated(savedUser);
         
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
-        String token = jwtUtil.generateToken(userDetails);
+        String token = jwtUtil.generateToken(buildTokenClaims(userDetails), userDetails);
         AuthResult result = new AuthResult();
         result.setToken(token);
         result.setUser(savedUser);
@@ -82,13 +89,20 @@ public class AuthService {
                         request.getPassword()));
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(loginUsername);
-        String token = jwtUtil.generateToken(userDetails);
+        String token = jwtUtil.generateToken(buildTokenClaims(userDetails), userDetails);
         User user = userRepository.findByUsername(loginUsername)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password"));
         AuthResult result = new AuthResult();
         result.setToken(token);
         result.setUser(user);
         return result;
+    }
+
+    private Map<String, Object> buildTokenClaims(UserDetails userDetails) {
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+        return Map.of("roles", roles);
     }
 
     @Transactional

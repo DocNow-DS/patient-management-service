@@ -27,7 +27,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleDataAccessResourceFailure(DataAccessResourceFailureException ex) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("error", "DATABASE_UNAVAILABLE");
-        body.put("message", "MongoDB is not reachable. Start MongoDB (localhost:27017) or set MONGODB_URI.");
+        body.put("message", "MongoDB is not reachable. Start MongoDB (localhost:27017) or set SPRING_DATA_MONGODB_URI (or MONGODB_URI).");
         body.put("details", ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage());
         body.put("timestamp", OffsetDateTime.now().toString());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
