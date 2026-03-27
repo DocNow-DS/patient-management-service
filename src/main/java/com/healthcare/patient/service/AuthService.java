@@ -18,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -84,7 +85,12 @@ public class AuthService {
                     .licenseNumber(null)
                     .yearsOfExperience(null)
                     .qualifications(null)
-                    .department(null);
+                    .department(null)
+                    .hospitalName(null)
+                    .education(null)
+                    .about(null)
+                    .profileImageUrl(null)
+                    .isVerified(false);
         } else if (mappedRole == Role.DOCTOR) {
             userBuilder.name(request.getSpecialty() + " Doctor")
                     .age(null)
@@ -96,7 +102,12 @@ public class AuthService {
                     .licenseNumber(request.getLicenseNumber())
                     .yearsOfExperience(request.getYearsOfExperience())
                     .qualifications(request.getQualifications())
-                    .department(request.getDepartment());
+                    .department(request.getDepartment())
+                    .hospitalName(null)
+                    .education(null)
+                    .about(null)
+                    .profileImageUrl(null)
+                    .isVerified(false);
         } else {
             userBuilder.name("Admin")
                     .age(null)
@@ -108,8 +119,16 @@ public class AuthService {
                     .licenseNumber(null)
                     .yearsOfExperience(null)
                     .qualifications(null)
-                    .department(null);
+                    .department(null)
+                    .hospitalName(null)
+                    .education(null)
+                    .about(null)
+                    .profileImageUrl(null)
+                    .isVerified(true);
         }
+
+        userBuilder.createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now());
 
         User user = userBuilder.build();
 

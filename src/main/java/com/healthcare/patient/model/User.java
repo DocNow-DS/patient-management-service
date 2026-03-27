@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Data
@@ -35,4 +36,11 @@ public class User {
     private Integer yearsOfExperience;
     private String qualifications;
     private String department;
+    private String hospitalName;
+    private String education;
+    private String about;
+    private String profileImageUrl;
+    private Boolean isVerified;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

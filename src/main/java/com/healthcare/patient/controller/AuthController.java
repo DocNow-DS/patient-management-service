@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,6 +39,13 @@ public class AuthController {
         return ResponseEntity.ok(users);
     }
 
+    @GetMapping("/users/{id}")
+    public ResponseEntity<User> getUserById(@PathVariable String id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + id));
+        return ResponseEntity.ok(user);
+    }
+
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody AuthService.RegisterRequest request,
                                                   @AuthenticationPrincipal UserDetails userDetails) {
@@ -55,6 +63,32 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@RequestBody AuthService.LoginRequest request) {
         AuthService.AuthResult result = authService.login(request);
         return ResponseEntity.ok(new AuthResponse("Bearer", result.getToken(), result.getUser()));
+    }
+
+    @PutMapping("/users/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable String id, @RequestBody User userDetails) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + id));
+        
+        // Update fields if provided
+        if (userDetails.getName() != null) user.setName(userDetails.getName());
+        if (userDetails.getPhone() != null) user.setPhone(userDetails.getPhone());
+        if (userDetails.getAddress() != null) user.setAddress(userDetails.getAddress());
+        if (userDetails.getSpecialty() != null) user.setSpecialty(userDetails.getSpecialty());
+        if (userDetails.getHospitalName() != null) user.setHospitalName(userDetails.getHospitalName());
+        if (userDetails.getEducation() != null) user.setEducation(userDetails.getEducation());
+        if (userDetails.getAbout() != null) user.setAbout(userDetails.getAbout());
+        if (userDetails.getProfileImageUrl() != null) user.setProfileImageUrl(userDetails.getProfileImageUrl());
+        if (userDetails.getYearsOfExperience() != null) user.setYearsOfExperience(userDetails.getYearsOfExperience());
+        if (userDetails.getQualifications() != null) user.setQualifications(userDetails.getQualifications());
+        if (userDetails.getDepartment() != null) user.setDepartment(userDetails.getDepartment());
+        if (userDetails.getLicenseNumber() != null) user.setLicenseNumber(userDetails.getLicenseNumber());
+        if (userDetails.getIsVerified() != null) user.setIsVerified(userDetails.getIsVerified());
+        if (userDetails.getGender() != null) user.setGender(userDetails.getGender());
+        if (userDetails.getAge() != null) user.setAge(userDetails.getAge());
+        
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        return ResponseEntity.ok(userRepository.save(user));
     }
 
     // Requires Bearer token
