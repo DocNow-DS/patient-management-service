@@ -99,4 +99,11 @@ public class PatientController {
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + id));
         return ResponseEntity.ok(user);
     }
+
+    @GetMapping("/username/{username}")
+    public ResponseEntity<User> getPatientByUsername(@PathVariable String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+        return ResponseEntity.ok(user);
+    }
 }
