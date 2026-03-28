@@ -47,7 +47,7 @@ public class AuthService {
 
         // map role: default to PATIENT if not provided, support case-insensitive match
         Role mappedRole;
-        String roleStr = request.getRole();
+        String roleStr = request.getRoles();
         if (roleStr == null || roleStr.isBlank()) {
             mappedRole = Role.PATIENT;
         } else {
@@ -219,7 +219,7 @@ public class AuthService {
         private String username;
         private String password;
         private String email;
-        private String role;
+        private String roles;
         private String specialty;
         private String licenseNumber;
         private Integer yearsOfExperience;
