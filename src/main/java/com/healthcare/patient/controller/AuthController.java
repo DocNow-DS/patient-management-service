@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.security.Principal;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -101,16 +103,22 @@ public class AuthController {
 
     @GetMapping("/validate")
     public ResponseEntity<AuthResponse> validateToken(@AuthenticationPrincipal UserDetails userDetails) {
+        log.debug("Validate token called, userDetails: {}", userDetails);
+        
         if (userDetails == null) {
+            log.warn("Validate token: userDetails is null - returning 401");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
+        log.debug("Validate token: found user {}, roles: {}", user.getUsername(), user.getRoles());
+        
         // Generate a new token for the validated user
         String token = jwtUtil.generateToken(userDetails);
         
+        log.debug("Validate token: returning success with user {}", user.getUsername());
         return ResponseEntity.ok(new AuthResponse("Bearer", token, user));
     }
 
