@@ -101,6 +101,14 @@ public class AuthController {
         return ResponseEntity.ok(updated);
     }
 
+    @GetMapping("/username")
+    public ResponseEntity<String> getUsername(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(userDetails.getUsername());
+    }
+
     @GetMapping("/validate")
     public ResponseEntity<AuthResponse> validateToken(@AuthenticationPrincipal UserDetails userDetails) {
         log.debug("Validate token called, userDetails: {}", userDetails);
