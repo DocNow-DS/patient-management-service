@@ -62,7 +62,7 @@ public class PatientController {
     public ResponseEntity<MedicalReport> uploadReport(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam("file") MultipartFile file,
-            @RequestParam("description") String description) {
+            @RequestParam(value = "description", required = false) String description) {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -73,7 +73,7 @@ public class PatientController {
                 .fileName(file.getOriginalFilename())
                 .filePath(filePath)
                 .uploadDate(LocalDateTime.now())
-                .description(description)
+                .description(description == null ? "" : description)
                 .build();
 
         return ResponseEntity.ok(reportRepository.save(report));

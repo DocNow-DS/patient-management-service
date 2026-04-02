@@ -59,6 +59,9 @@ Thumbs.db
 uploads/
 *.log
 
+# Firebase service account (do not commit)
+src/main/resources/firebase-service-account.json
+
 # Docker
 .dockerignore
 
