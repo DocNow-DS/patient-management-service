@@ -17,6 +17,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,12 +35,15 @@ import java.util.stream.Collectors;
 @Service
 public class FileStorageService {
 
+    private static final Logger logger = LoggerFactory.getLogger(FileStorageService.class);
+
     private final Path fileStorageLocation;
     private final boolean cloudinaryEnabled;
     private final String cloudinaryCloudName;
     private final String cloudinaryUploadPreset;
     private final long maxFileSizeBytes;
     private final Set<String> allowedExtensions;
+    private final boolean failOnRemoteUploadError;
     private final ObjectMapper objectMapper;
     private final String supabaseUrl;
     private final String supabaseServiceKey;
@@ -50,6 +57,7 @@ public class FileStorageService {
             @Value("${cloudinary.upload-preset:}") String cloudinaryUploadPreset,
             @Value("${report.max-file-size-mb:10}") long maxFileSizeMb,
             @Value("${report.allowed-extensions:pdf,jpg,jpeg,png,doc,docx}") String allowedExtensionsCsv,
+            @Value("${report.fail-on-remote-upload-error:true}") boolean failOnRemoteUploadError,
             @Value("${supabase.url:}") String supabaseUrl,
             @Value("${supabase.service-key:}") String supabaseServiceKey,
             @Value("${supabase.bucket:}") String supabaseBucket) {
@@ -63,6 +71,7 @@ public class FileStorageService {
                 .filter(v -> !v.isBlank())
                 .map(v -> v.toLowerCase(Locale.ROOT))
                 .collect(Collectors.toSet());
+        this.failOnRemoteUploadError = failOnRemoteUploadError;
         this.objectMapper = new ObjectMapper();
 
         this.supabaseUrl = supabaseUrl == null ? "" : supabaseUrl.trim();
@@ -95,7 +104,10 @@ public class FileStorageService {
             try {
                 return uploadToCloudinary(file, originalFilename);
             } catch (Exception ex) {
-                System.out.println("Cloudinary upload failed, using local storage fallback: " + ex.getMessage());
+                logger.warn("Cloudinary upload failed: {}", ex.getMessage(), ex);
+                if (failOnRemoteUploadError) {
+                    throw new RuntimeException("Cloudinary upload failed", ex);
+                }
             }
         }
 
@@ -103,7 +115,10 @@ public class FileStorageService {
             try {
                 return uploadToSupabase(file, originalFilename);
             } catch (Exception ex) {
-                System.out.println("Supabase upload failed, using local storage fallback: " + ex.getMessage());
+                logger.warn("Supabase upload failed: {}", ex.getMessage(), ex);
+                if (failOnRemoteUploadError) {
+                    throw new RuntimeException("Supabase upload failed", ex);
+                }
             }
         }
 
@@ -184,6 +199,14 @@ public class FileStorageService {
         return filename.substring(dot + 1).toLowerCase(Locale.ROOT);
     }
 
+    private String encodePathComponent(String s) {
+        try {
+            return URLEncoder.encode(s, StandardCharsets.UTF_8.name());
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException("Failed to encode path component", e);
+        }
+    }
+
     private boolean canUploadToSupabase() {
         return !supabaseUrl.isBlank() && !supabaseServiceKey.isBlank() && !supabaseBucket.isBlank();
     }
@@ -191,10 +214,13 @@ public class FileStorageService {
     private String uploadToSupabase(MultipartFile file, String originalFilename) throws Exception {
         String path = "patients/" + UUID.randomUUID() + "_" + originalFilename;
         String encodedPath = Arrays.stream(path.split("/"))
-                .map(s -> URLEncoder.encode(s, StandardCharsets.UTF_8))
-                .collect(Collectors.joining("/"));
+            .map(this::encodePathComponent)
+            .collect(Collectors.joining("/"));
 
-        String uploadUrl = supabaseUrl + "/storage/v1/object/" + supabaseBucket + "/" + encodedPath;
+        String storageBase = getStorageBaseUrl();
+        String uploadUrl = storageBase + "/storage/v1/object/" + supabaseBucket + "/" + encodedPath;
+        logger.info("Uploading report to Supabase storage: bucket='{}', path='{}'", supabaseBucket, encodedPath);
+        logger.debug("Upload metadata: originalFilename='{}', size={}, contentType={}", originalFilename, file.getSize(), file.getContentType());
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(uploadUrl))
@@ -205,12 +231,29 @@ public class FileStorageService {
                 .PUT(HttpRequest.BodyPublishers.ofByteArray(file.getBytes()))
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        try {
+            logger.debug("Sending PUT to Supabase: {}", uploadUrl);
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            logger.info("Supabase upload response: status={}, bodyLen={}", response.statusCode(), response.body() == null ? 0 : response.body().length());
+            logger.debug("Supabase response body: {}", response.body());
 
-        if (response.statusCode() >= 200 && response.statusCode() < 300) {
-            return supabaseUrl + "/storage/v1/object/public/" + supabaseBucket + "/" + encodedPath;
-        } else {
-            throw new RuntimeException("Supabase upload failed: " + response.statusCode() + " " + response.body());
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                return storageBase + "/storage/v1/object/public/" + supabaseBucket + "/" + encodedPath;
+            } else {
+                throw new RuntimeException("Supabase upload failed: " + response.statusCode() + " " + response.body());
+            }
+        } catch (Exception e) {
+            logger.error("Exception while uploading to Supabase: {}", e.getMessage(), e);
+            throw e;
         }
+    }
+
+    private String getStorageBaseUrl() {
+        if (supabaseUrl == null || supabaseUrl.isBlank()) return supabaseUrl;
+        if (supabaseUrl.contains(".storage.")) return supabaseUrl;
+        if (supabaseUrl.endsWith(".supabase.co")) {
+            return supabaseUrl.replaceFirst("\\.supabase\\.co$", ".storage.supabase.co");
+        }
+        return supabaseUrl;
     }
 }
