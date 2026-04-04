@@ -86,11 +86,25 @@ public class PatientController {
         return ResponseEntity.ok(reportRepository.findByUserId(user.getId()));
     }
 
+    @GetMapping("/{id}/reports")
+    public ResponseEntity<List<MedicalReport>> getReportsByPatientId(@PathVariable String id) {
+        userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + id));
+        return ResponseEntity.ok(reportRepository.findByUserId(id));
+    }
+
     @GetMapping("/prescriptions")
     public ResponseEntity<List<Prescription>> getPrescriptions(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(prescriptionRepository.findByUserId(user.getId()));
+    }
+
+    @GetMapping("/{id}/prescriptions")
+    public ResponseEntity<List<Prescription>> getPrescriptionsByPatientId(@PathVariable String id) {
+        userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + id));
+        return ResponseEntity.ok(prescriptionRepository.findByUserId(id));
     }
 
     @GetMapping("/{id}")
