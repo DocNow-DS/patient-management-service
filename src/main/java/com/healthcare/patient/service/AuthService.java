@@ -75,12 +75,12 @@ public class AuthService {
 
         // Set fields based on role
         if (mappedRole == Role.PATIENT) {
-            userBuilder.name("Unknown")
-                    .age(null)
-                    .gender("Unknown")
-                    .phone("")
-                    .address("")
-                    .medicalHistory("")
+            userBuilder.name(request.getName() != null && !request.getName().isBlank() ? request.getName() : "Unknown")
+                    .age(request.getAge())
+                    .gender(request.getGender() != null && !request.getGender().isBlank() ? request.getGender() : "Unknown")
+                    .phone(request.getPhone() != null ? request.getPhone() : "")
+                    .address(request.getAddress() != null ? request.getAddress() : "")
+                    .medicalHistory(request.getMedicalHistory() != null ? request.getMedicalHistory() : "")
                     .specialty(null)
                     .licenseNumber(null)
                     .yearsOfExperience(null)
@@ -220,6 +220,12 @@ public class AuthService {
         private String password;
         private String email;
         private String roles;
+        private String name;
+        private String phone;
+        private Integer age;
+        private String gender;
+        private String address;
+        private String medicalHistory;
         private String specialty;
         private String licenseNumber;
         private Integer yearsOfExperience;

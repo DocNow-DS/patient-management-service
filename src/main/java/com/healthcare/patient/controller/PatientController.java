@@ -62,7 +62,7 @@ public class PatientController {
     public ResponseEntity<MedicalReport> uploadReport(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam("file") MultipartFile file,
-            @RequestParam("description") String description) {
+            @RequestParam(value = "description", required = false) String description) {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -73,7 +73,7 @@ public class PatientController {
                 .fileName(file.getOriginalFilename())
                 .filePath(filePath)
                 .uploadDate(LocalDateTime.now())
-                .description(description)
+                .description(description == null ? "" : description)
                 .build();
 
         return ResponseEntity.ok(reportRepository.save(report));
@@ -86,11 +86,25 @@ public class PatientController {
         return ResponseEntity.ok(reportRepository.findByUserId(user.getId()));
     }
 
+    @GetMapping("/{id}/reports")
+    public ResponseEntity<List<MedicalReport>> getReportsByPatientId(@PathVariable String id) {
+        userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + id));
+        return ResponseEntity.ok(reportRepository.findByUserId(id));
+    }
+
     @GetMapping("/prescriptions")
     public ResponseEntity<List<Prescription>> getPrescriptions(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(prescriptionRepository.findByUserId(user.getId()));
+    }
+
+    @GetMapping("/{id}/prescriptions")
+    public ResponseEntity<List<Prescription>> getPrescriptionsByPatientId(@PathVariable String id) {
+        userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + id));
+        return ResponseEntity.ok(prescriptionRepository.findByUserId(id));
     }
 
     @GetMapping("/{id}")
