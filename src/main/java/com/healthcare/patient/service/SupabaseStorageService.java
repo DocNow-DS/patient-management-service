@@ -35,7 +35,8 @@ public class SupabaseStorageService {
                 .map(s -> URLEncoder.encode(s, StandardCharsets.UTF_8))
                 .collect(Collectors.joining("/"));
 
-        String uploadUrl = supabaseUrl + "/storage/v1/object/" + bucket + "/" + encodedPath;
+        String storageBase = getStorageBaseUrl();
+        String uploadUrl = storageBase + "/storage/v1/object/" + bucket + "/" + encodedPath;
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(uploadUrl))
@@ -50,9 +51,18 @@ public class SupabaseStorageService {
 
         if (response.statusCode() >= 200 && response.statusCode() < 300) {
             // Public URL pattern for Supabase storage
-            return supabaseUrl + "/storage/v1/object/public/" + bucket + "/" + encodedPath;
+            return storageBase + "/storage/v1/object/public/" + bucket + "/" + encodedPath;
         } else {
             throw new RuntimeException("Supabase upload failed: " + response.statusCode() + " " + response.body());
         }
+    }
+
+    private String getStorageBaseUrl() {
+        if (supabaseUrl == null || supabaseUrl.isBlank()) return supabaseUrl;
+        if (supabaseUrl.contains(".storage.")) return supabaseUrl;
+        if (supabaseUrl.endsWith(".supabase.co")) {
+            return supabaseUrl.replaceFirst("\\.supabase\\.co$", ".storage.supabase.co");
+        }
+        return supabaseUrl;
     }
 }

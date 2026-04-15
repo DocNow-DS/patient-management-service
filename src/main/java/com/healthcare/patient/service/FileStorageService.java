@@ -239,7 +239,7 @@ public class FileStorageService {
             logger.debug("Supabase response body: {}", response.body());
 
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
-                return storageBase + "/storage/v1/object/public/" + supabaseBucket + "/" + encodedPath;
+                return createSupabaseSignedUrl(storageBase, encodedPath);
             } else {
                 throw new RuntimeException("Supabase upload failed: " + response.statusCode() + " " + response.body());
             }
@@ -249,12 +249,108 @@ public class FileStorageService {
         }
     }
 
+    private String createSupabaseSignedUrl(String storageBase, String encodedPath) throws Exception {
+        return createSupabaseSignedUrl(storageBase, supabaseBucket, encodedPath);
+    }
+
+    private String createSupabaseSignedUrl(String storageBase, String bucketName, String encodedPath) throws Exception {
+        String signUrl = storageBase + "/storage/v1/object/sign/" + bucketName + "/" + encodedPath;
+
+        HttpRequest signRequest = HttpRequest.newBuilder()
+                .uri(URI.create(signUrl))
+                .header("Authorization", "Bearer " + supabaseServiceKey)
+                .header("apikey", supabaseServiceKey)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"expiresIn\":604800}"))
+                .build();
+
+        HttpResponse<String> signResponse = httpClient.send(signRequest, HttpResponse.BodyHandlers.ofString());
+        if (signResponse.statusCode() < 200 || signResponse.statusCode() >= 300) {
+            throw new RuntimeException("Supabase sign URL failed: " + signResponse.statusCode() + " " + signResponse.body());
+        }
+
+        Map<String, Object> payload = objectMapper.readValue(signResponse.body(), new TypeReference<>() {});
+        Object signed = payload.get("signedURL");
+        if (signed == null || signed.toString().isBlank()) {
+            throw new RuntimeException("Supabase signed URL missing in response");
+        }
+
+        String signedUrl = signed.toString();
+        if (signedUrl.startsWith("http://") || signedUrl.startsWith("https://")) {
+            return signedUrl;
+        }
+
+        if (!signedUrl.startsWith("/")) {
+            signedUrl = "/" + signedUrl;
+        }
+
+        if (!signedUrl.startsWith("/storage/v1/")) {
+            signedUrl = "/storage/v1" + signedUrl;
+        }
+
+        return storageBase + signedUrl;
+    }
+
+    public String resolveAccessUrl(String storedUrl) {
+        if (storedUrl == null) return null;
+        String value = storedUrl.trim();
+        if (value.isEmpty()) return value;
+
+        value = value.replace(".storage.storage.supabase.co", ".storage.supabase.co");
+        value = value.replace("/storage/v1/s3/object/public/", "/storage/v1/object/public/");
+        value = value.replace("/storage/v1/s3/object/", "/storage/v1/object/");
+
+        if (!value.contains("/storage/v1/")) {
+            return value;
+        }
+
+        String marker = "/storage/v1/object/public/";
+        int idx = value.indexOf(marker);
+        if (idx < 0) {
+            marker = "/storage/v1/object/";
+            idx = value.indexOf(marker);
+        }
+        if (idx < 0) {
+            return value;
+        }
+
+        String suffix = value.substring(idx + marker.length());
+        int slash = suffix.indexOf('/');
+        if (slash <= 0 || slash >= suffix.length() - 1) {
+            return value;
+        }
+
+        String bucketName = suffix.substring(0, slash);
+        String encodedPath = suffix.substring(slash + 1);
+        if (bucketName.isBlank() || encodedPath.isBlank()) {
+            return value;
+        }
+
+        try {
+            return createSupabaseSignedUrl(getStorageBaseUrl(), bucketName, encodedPath);
+        } catch (Exception ex) {
+            logger.warn("Failed to resolve signed URL for stored report, using original URL: {}", ex.getMessage());
+            return value;
+        }
+    }
+
     private String getStorageBaseUrl() {
         if (supabaseUrl == null || supabaseUrl.isBlank()) return supabaseUrl;
-        if (supabaseUrl.contains(".storage.")) return supabaseUrl;
-        if (supabaseUrl.endsWith(".supabase.co")) {
-            return supabaseUrl.replaceFirst("\\.supabase\\.co$", ".storage.supabase.co");
+
+        String base = supabaseUrl.trim();
+        int storagePathIdx = base.indexOf("/storage/v1");
+        if (storagePathIdx > -1) {
+            base = base.substring(0, storagePathIdx);
         }
-        return supabaseUrl;
+        base = base.replace(".storage.storage.supabase.co", ".storage.supabase.co");
+        if (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+
+        if (base.contains(".storage.")) return base;
+        if (base.endsWith(".supabase.co")) {
+            return base.replaceFirst("\\.supabase\\.co$", ".storage.supabase.co");
+        }
+        return base;
     }
 }

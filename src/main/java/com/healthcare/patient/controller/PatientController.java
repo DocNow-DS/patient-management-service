@@ -15,7 +15,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/patient")
@@ -83,14 +86,57 @@ public class PatientController {
     public ResponseEntity<List<MedicalReport>> getReports(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return ResponseEntity.ok(reportRepository.findByUserId(user.getId()));
+        return ResponseEntity.ok(normalizeReportUrls(findReportsForUser(user)));
     }
 
     @GetMapping("/{id}/reports")
     public ResponseEntity<List<MedicalReport>> getReportsByPatientId(@PathVariable String id) {
-        userRepository.findById(id)
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + id));
-        return ResponseEntity.ok(reportRepository.findByUserId(id));
+        return ResponseEntity.ok(normalizeReportUrls(findReportsForUser(user)));
+    }
+
+    private List<MedicalReport> findReportsForUser(User user) {
+        List<String> candidateIds = new ArrayList<>();
+        if (user.getId() != null && !user.getId().isBlank()) candidateIds.add(user.getId().trim());
+        if (user.getUsername() != null && !user.getUsername().isBlank()) candidateIds.add(user.getUsername().trim());
+        if (user.getEmail() != null && !user.getEmail().isBlank()) candidateIds.add(user.getEmail().trim());
+
+        if (candidateIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<MedicalReport> rawReports = reportRepository.findByUserIdIn(candidateIds);
+
+        // De-duplicate in case a report matches more than one legacy key.
+        Map<String, MedicalReport> byId = new LinkedHashMap<>();
+        for (MedicalReport report : rawReports) {
+            if (report == null) continue;
+            String key = report.getId() == null ? Integer.toString(System.identityHashCode(report)) : report.getId();
+            byId.putIfAbsent(key, report);
+        }
+
+        return new ArrayList<>(byId.values());
+    }
+
+    private List<MedicalReport> normalizeReportUrls(List<MedicalReport> reports) {
+        for (MedicalReport report : reports) {
+            report.setFilePath(normalizeReportUrl(report.getFilePath()));
+        }
+        return reports;
+    }
+
+    private String normalizeReportUrl(String rawUrl) {
+        if (rawUrl == null) return null;
+
+        String normalized = rawUrl.trim();
+        if (normalized.isEmpty()) return normalized;
+
+        normalized = normalized.replace(".storage.storage.supabase.co", ".storage.supabase.co");
+        normalized = normalized.replaceAll("(?<!\\.storage)\\.supabase\\.co(?=/storage/v1/)", ".storage.supabase.co");
+        normalized = normalized.replace("/storage/v1/s3/object/public/", "/storage/v1/object/public/");
+        normalized = normalized.replace("/storage/v1/s3/object/", "/storage/v1/object/");
+        return fileStorageService.resolveAccessUrl(normalized);
     }
 
     @GetMapping("/prescriptions")
