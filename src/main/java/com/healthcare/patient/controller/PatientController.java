@@ -8,12 +8,21 @@ import com.healthcare.patient.repository.ReportRepository;
 import com.healthcare.patient.repository.UserRepository;
 import com.healthcare.patient.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -82,6 +91,27 @@ public class PatientController {
         return ResponseEntity.ok(reportRepository.save(report));
     }
 
+    @DeleteMapping("/reports/{reportId}")
+    public ResponseEntity<?> deleteReport(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String reportId) {
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        MedicalReport report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new RuntimeException("Report not found"));
+
+        // Only allow deleting own reports
+        if (!report.getUserId().equals(user.getId()) && 
+            !report.getUserId().equals(user.getUsername()) && 
+            !report.getUserId().equals(user.getEmail())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Cannot delete another user's report"));
+        }
+
+        reportRepository.delete(report);
+        return ResponseEntity.ok().body(Map.of("message", "Report deleted successfully"));
+    }
+
     @GetMapping("/reports")
     public ResponseEntity<List<MedicalReport>> getReports(@AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByUsername(userDetails.getUsername())
@@ -121,22 +151,74 @@ public class PatientController {
 
     private List<MedicalReport> normalizeReportUrls(List<MedicalReport> reports) {
         for (MedicalReport report : reports) {
-            report.setFilePath(normalizeReportUrl(report.getFilePath()));
+            report.setFilePath(normalizeReportUrl(report));
         }
         return reports;
     }
 
-    private String normalizeReportUrl(String rawUrl) {
+    private String normalizeReportUrl(MedicalReport report) {
+        if (report == null) return null;
+        String rawUrl = report.getFilePath();
         if (rawUrl == null) return null;
 
         String normalized = rawUrl.trim();
         if (normalized.isEmpty()) return normalized;
+
+        // Local paths cannot be opened directly by the frontend; expose via backend endpoint.
+        if (!normalized.startsWith("http://") && !normalized.startsWith("https://") && report.getId() != null && !report.getId().isBlank()) {
+            return "/api/patient/reports/" + report.getId() + "/view";
+        }
 
         normalized = normalized.replace(".storage.storage.supabase.co", ".storage.supabase.co");
         normalized = normalized.replaceAll("(?<!\\.storage)\\.supabase\\.co(?=/storage/v1/)", ".storage.supabase.co");
         normalized = normalized.replace("/storage/v1/s3/object/public/", "/storage/v1/object/public/");
         normalized = normalized.replace("/storage/v1/s3/object/", "/storage/v1/object/");
         return fileStorageService.resolveAccessUrl(normalized);
+    }
+
+    @GetMapping("/reports/{reportId}/view")
+    public ResponseEntity<?> viewReport(@PathVariable String reportId) {
+        MedicalReport report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new RuntimeException("Report not found"));
+
+        String storedPath = report.getFilePath();
+        if (storedPath == null || storedPath.isBlank()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Report path is empty");
+        }
+
+        String normalized = storedPath.trim();
+        if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+            String target = normalizeReportUrl(report);
+            return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(target)).build();
+        }
+
+        try {
+            Path filePath = Paths.get(normalized).normalize().toAbsolutePath();
+            if (!Files.exists(filePath) || !Files.isRegularFile(filePath)) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Report file not found");
+            }
+
+            Resource resource = new UrlResource(filePath.toUri());
+            if (!resource.exists() || !resource.isReadable()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Report file is not readable");
+            }
+
+            String contentType = Files.probeContentType(filePath);
+            if (contentType == null || contentType.isBlank()) {
+                contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+            }
+
+            String fileName = report.getFileName() == null || report.getFileName().isBlank()
+                    ? filePath.getFileName().toString()
+                    : report.getFileName();
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
+                    .body(resource);
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to open report");
+        }
     }
 
     @GetMapping("/prescriptions")

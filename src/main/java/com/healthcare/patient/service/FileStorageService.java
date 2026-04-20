@@ -348,9 +348,6 @@ public class FileStorageService {
         }
 
         if (base.contains(".storage.")) return base;
-        if (base.endsWith(".supabase.co")) {
-            return base.replaceFirst("\\.supabase\\.co$", ".storage.supabase.co");
-        }
         return base;
     }
 }
