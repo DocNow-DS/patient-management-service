@@ -59,10 +59,6 @@ public class SupabaseStorageService {
 
     private String getStorageBaseUrl() {
         if (supabaseUrl == null || supabaseUrl.isBlank()) return supabaseUrl;
-        if (supabaseUrl.contains(".storage.")) return supabaseUrl;
-        if (supabaseUrl.endsWith(".supabase.co")) {
-            return supabaseUrl.replaceFirst("\\.supabase\\.co$", ".storage.supabase.co");
-        }
         return supabaseUrl;
     }
 }
