@@ -43,6 +43,12 @@ public class SecurityConfig {
                     .requestMatchers("/error").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/register/").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/login/").permitAll()
+                    // Allow other services to lookup patient by ID/username without auth (internal service calls)
+                    .requestMatchers(HttpMethod.GET, "/api/patient/*", "/api/patient/**").permitAll()
+                    // Doctor + appointment services call this without a token; list endpoint GET /api/auth/users stays authenticated.
+                    .requestMatchers(HttpMethod.GET, "/api/auth/users/*").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/public/doctors", "/api/public/doctors/").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/auth/validate").authenticated()
                         .anyRequest().authenticated())
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)

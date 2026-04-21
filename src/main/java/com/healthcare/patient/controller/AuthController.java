@@ -3,13 +3,18 @@ package com.healthcare.patient.controller;
 import com.healthcare.patient.service.AuthService;
 import com.healthcare.patient.repository.UserRepository;
 import com.healthcare.patient.model.User;
+import com.healthcare.patient.security.JwtUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.security.Principal;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -26,6 +32,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
 
     @GetMapping("/users")
     public ResponseEntity<List<User>> getAllUsers() {
@@ -34,9 +41,22 @@ public class AuthController {
         return ResponseEntity.ok(users);
     }
 
+    @GetMapping("/users/{id}")
+    public ResponseEntity<User> getUserById(@PathVariable String id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + id));
+        return ResponseEntity.ok(user);
+    }
+
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody AuthService.RegisterRequest request) {
-        AuthService.AuthResult result = authService.register(request);
+    public ResponseEntity<AuthResponse> register(@RequestBody AuthService.RegisterRequest request,
+                                                  @AuthenticationPrincipal UserDetails userDetails) {
+        User requestingAdmin = null;
+        if (userDetails != null) {
+            requestingAdmin = userRepository.findByUsername(userDetails.getUsername())
+                    .orElse(null);
+        }
+        AuthService.AuthResult result = authService.register(request, requestingAdmin);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new AuthResponse("Bearer", result.getToken(), result.getUser()));
     }
@@ -47,12 +67,67 @@ public class AuthController {
         return ResponseEntity.ok(new AuthResponse("Bearer", result.getToken(), result.getUser()));
     }
 
+    @PutMapping("/users/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable String id, @RequestBody User userDetails) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + id));
+        
+        // Update fields if provided
+        if (userDetails.getName() != null) user.setName(userDetails.getName());
+        if (userDetails.getPhone() != null) user.setPhone(userDetails.getPhone());
+        if (userDetails.getAddress() != null) user.setAddress(userDetails.getAddress());
+        if (userDetails.getSpecialty() != null) user.setSpecialty(userDetails.getSpecialty());
+        if (userDetails.getHospitalName() != null) user.setHospitalName(userDetails.getHospitalName());
+        if (userDetails.getEducation() != null) user.setEducation(userDetails.getEducation());
+        if (userDetails.getAbout() != null) user.setAbout(userDetails.getAbout());
+        if (userDetails.getProfileImageUrl() != null) user.setProfileImageUrl(userDetails.getProfileImageUrl());
+        if (userDetails.getYearsOfExperience() != null) user.setYearsOfExperience(userDetails.getYearsOfExperience());
+        if (userDetails.getQualifications() != null) user.setQualifications(userDetails.getQualifications());
+        if (userDetails.getDepartment() != null) user.setDepartment(userDetails.getDepartment());
+        if (userDetails.getLicenseNumber() != null) user.setLicenseNumber(userDetails.getLicenseNumber());
+        if (userDetails.getIsVerified() != null) user.setIsVerified(userDetails.getIsVerified());
+        if (userDetails.getGender() != null) user.setGender(userDetails.getGender());
+        if (userDetails.getAge() != null) user.setAge(userDetails.getAge());
+        
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        return ResponseEntity.ok(userRepository.save(user));
+    }
+
     // Requires Bearer token
     @PutMapping("/me")
     public ResponseEntity<User> updateMyCredentials(Principal principal,
                                                     @RequestBody AuthService.UpdateCredentialsRequest request) {
         User updated = authService.updateCredentials(principal.getName(), request);
         return ResponseEntity.ok(updated);
+    }
+
+    @GetMapping("/username")
+    public ResponseEntity<String> getUsername(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(userDetails.getUsername());
+    }
+
+    @GetMapping("/validate")
+    public ResponseEntity<AuthResponse> validateToken(@AuthenticationPrincipal UserDetails userDetails) {
+        log.debug("Validate token called, userDetails: {}", userDetails);
+        
+        if (userDetails == null) {
+            log.warn("Validate token: userDetails is null - returning 401");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        log.debug("Validate token: found user {}, roles: {}", user.getUsername(), user.getRoles());
+        
+        // Generate a new token for the validated user
+        String token = jwtUtil.generateToken(userDetails);
+        
+        log.debug("Validate token: returning success with user {}", user.getUsername());
+        return ResponseEntity.ok(new AuthResponse("Bearer", token, user));
     }
 
     @Data

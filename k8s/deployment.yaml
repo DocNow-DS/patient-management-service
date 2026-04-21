@@ -19,7 +19,7 @@ spec:
         - containerPort: 8081
         env:
         - name: SPRING_DATA_MONGODB_URI
-          value: "mongodb://mongo-service:27017/patientdb"
+          value: "mongodb+srv://lasannavodya:DelLCS5EiIBT3jFu@course.uf2pi.mongodb.net/HealthCare?retryWrites=true&w=majority&appName=Course"
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:

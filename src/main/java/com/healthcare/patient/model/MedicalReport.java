@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 public class MedicalReport {
     @Id
     private String id;
-    private String patientId;
+    private String userId;
     private String fileName;
     private String filePath;
     private LocalDateTime uploadDate;

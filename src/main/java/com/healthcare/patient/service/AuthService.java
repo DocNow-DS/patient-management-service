@@ -3,6 +3,7 @@ package com.healthcare.patient.service;
 import com.healthcare.patient.model.Role;
 import com.healthcare.patient.model.User;
 import com.healthcare.patient.repository.UserRepository;
+import com.healthcare.patient.event.UserEventPublisher;
 import com.healthcare.patient.security.JwtUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,12 +11,16 @@ import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.http.HttpStatus;
@@ -30,9 +35,10 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final UserDetailsService userDetailsService;
+    private final UserEventPublisher userEventPublisher;
 
     @Transactional
-    public AuthResult register(RegisterRequest request) {
+    public AuthResult register(RegisterRequest request, User requestingAdmin) {
         System.out.println("Registering user: " + request.getUsername());
         
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
@@ -41,7 +47,7 @@ public class AuthService {
 
         // map role: default to PATIENT if not provided, support case-insensitive match
         Role mappedRole;
-        String roleStr = request.getRole();
+        String roleStr = request.getRoles();
         if (roleStr == null || roleStr.isBlank()) {
             mappedRole = Role.PATIENT;
         } else {
@@ -53,21 +59,91 @@ public class AuthService {
             }
         }
 
-        User user = User.builder()
+        // Only admins can register doctors
+        if (mappedRole == Role.DOCTOR) {
+            if (requestingAdmin == null || !requestingAdmin.getRoles().contains(Role.ADMIN)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can register doctors");
+            }
+        }
+
+        User.UserBuilder userBuilder = User.builder()
                 .username(request.getUsername())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .email(request.getEmail())
                 .roles(Set.of(mappedRole))
-                .enabled(true)
-                .build();
+                .enabled(true);
+
+        // Set fields based on role
+        if (mappedRole == Role.PATIENT) {
+            userBuilder.name(request.getName() != null && !request.getName().isBlank() ? request.getName() : "Unknown")
+                    .age(request.getAge())
+                    .gender(request.getGender() != null && !request.getGender().isBlank() ? request.getGender() : "Unknown")
+                    .phone(request.getPhone() != null ? request.getPhone() : "")
+                    .address(request.getAddress() != null ? request.getAddress() : "")
+                    .medicalHistory(request.getMedicalHistory() != null ? request.getMedicalHistory() : "")
+                    .specialty(null)
+                    .licenseNumber(null)
+                    .yearsOfExperience(null)
+                    .qualifications(null)
+                    .department(null)
+                    .hospitalName(null)
+                    .education(null)
+                    .about(null)
+                    .profileImageUrl(null)
+                    .isVerified(false);
+        } else if (mappedRole == Role.DOCTOR) {
+            userBuilder.name(request.getSpecialty() + " Doctor")
+                    .age(null)
+                    .gender("Unknown")
+                    .phone("")
+                    .address("")
+                    .medicalHistory("")
+                    .specialty(request.getSpecialty())
+                    .licenseNumber(request.getLicenseNumber())
+                    .yearsOfExperience(request.getYearsOfExperience())
+                    .qualifications(request.getQualifications())
+                    .department(request.getDepartment())
+                    .hospitalName(null)
+                    .education(null)
+                    .about(null)
+                    .profileImageUrl(null)
+                    .isVerified(false);
+        } else {
+            userBuilder.name("Admin")
+                    .age(null)
+                    .gender("Unknown")
+                    .phone("")
+                    .address("")
+                    .medicalHistory("")
+                    .specialty(null)
+                    .licenseNumber(null)
+                    .yearsOfExperience(null)
+                    .qualifications(null)
+                    .department(null)
+                    .hospitalName(null)
+                    .education(null)
+                    .about(null)
+                    .profileImageUrl(null)
+                    .isVerified(true);
+        }
+
+        userBuilder.createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now());
+
+        User user = userBuilder.build();
 
         System.out.println("Saving user: " + user);
         User savedUser = userRepository.save(user);
         System.out.println("Saved user with ID: " + savedUser.getId());
+
+        userEventPublisher.publishUserCreated(savedUser);
         
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
-        String token = jwtUtil.generateToken(userDetails);
-        return new AuthResult(token, savedUser);
+        String token = jwtUtil.generateToken(buildTokenClaims(userDetails), userDetails);
+        AuthResult result = new AuthResult();
+        result.setToken(token);
+        result.setUser(savedUser);
+        return result;
     }
 
     public AuthResult login(LoginRequest request) {
@@ -79,10 +155,20 @@ public class AuthService {
                         request.getPassword()));
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(loginUsername);
-        String token = jwtUtil.generateToken(userDetails);
+        String token = jwtUtil.generateToken(buildTokenClaims(userDetails), userDetails);
         User user = userRepository.findByUsername(loginUsername)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password"));
-        return new AuthResult(token, user);
+        AuthResult result = new AuthResult();
+        result.setToken(token);
+        result.setUser(user);
+        return result;
+    }
+
+    private Map<String, Object> buildTokenClaims(UserDetails userDetails) {
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+        return Map.of("roles", roles);
     }
 
     @Transactional
@@ -133,7 +219,18 @@ public class AuthService {
         private String username;
         private String password;
         private String email;
-        private String role;
+        private String roles;
+        private String name;
+        private String phone;
+        private Integer age;
+        private String gender;
+        private String address;
+        private String medicalHistory;
+        private String specialty;
+        private String licenseNumber;
+        private Integer yearsOfExperience;
+        private String qualifications;
+        private String department;
     }
 
     @Data
